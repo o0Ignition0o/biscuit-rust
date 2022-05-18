@@ -12,6 +12,9 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
+#[cfg(feature = "temp-to-token")]
+use quote::{quote, ToTokens};
+
 // reexport those because the builder uses the same definitions
 pub use crate::datalog::{Binary, Unary};
 
@@ -22,6 +25,22 @@ pub struct BlockBuilder {
     pub rules: Vec<Rule>,
     pub checks: Vec<Check>,
     pub context: Option<String>,
+}
+
+#[cfg(feature = "temp-to-token")]
+impl ToTokens for BlockBuilder {
+    fn to_tokens(&self, tokens: &mut quote::__private::TokenStream) {
+        let facts_quote = self.facts.iter().map(|f| {
+            quote! {
+                builder.add_fact(#f);
+            }
+        });
+        tokens.extend(quote! {
+            let mut builder = ::biscuit_auth::builder::BlockBuilder::new();
+            #(#facts_quote)*
+            builder
+        })
+    }
 }
 
 impl BlockBuilder {
@@ -581,6 +600,15 @@ impl fmt::Display for Predicate {
 pub struct Fact {
     pub predicate: Predicate,
     pub parameters: Option<HashMap<String, Option<Term>>>,
+}
+
+#[cfg(feature = "temp-to-token")]
+impl ToTokens for Fact {
+    fn to_tokens(&self, tokens: &mut quote::__private::TokenStream) {
+        tokens.extend(quote! {
+            ::biscuit_auth::builder::Fact::new("toto".into(), Vec::new())
+        })
+    }
 }
 
 impl Fact {
